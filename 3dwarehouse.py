@@ -8,6 +8,9 @@ import wx
 import wx.grid
 import os
 from WalkDirectory import WalkDirectory
+from components import ConfigureData
+from GCode import GCode
+
 # begin wxGlade: dependencies
 # end wxGlade
 
@@ -19,15 +22,15 @@ from VTKPanel import VTKPanel
 class _3DWarehouseFrame(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: _3DWarehouseFrame.__init__
-        kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE | wx.MAXIMIZE
+        kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.SetSize((731, 660))
+        self.SetSize((1024, 768))
         self.panel_1 = wx.Panel(self, wx.ID_ANY)
         self.windowStlRender = VTKPanel(self.panel_1)
         self.txtPath = wx.TextCtrl(self.panel_1, wx.ID_ANY, "")
         self.button_Path_selection = wx.Button(self.panel_1, wx.ID_ANY, "...")
         self.treeDir = wx.TreeCtrl(self.panel_1, wx.ID_ANY)
-        self.grid_1 = wx.grid.Grid(self.panel_1, wx.ID_ANY, size=(1, 1))
+        self.gridDataInfo = wx.grid.Grid(self.panel_1, wx.ID_ANY, size=(1, 1))
         self.button_calculate = wx.Button(self.panel_1, wx.ID_ANY, "Calculate")
         self.button_test = wx.Button(self.panel_1, wx.ID_ANY, "TEST")
         self.button_close = wx.Button(self.panel_1, wx.ID_ANY, "Close")
@@ -42,14 +45,23 @@ class _3DWarehouseFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnClose, self.button_close)
         # end wxGlade
 
+        # Load and set configuration data
+        self.configData = ConfigureData()
+        self.configData.load()
+        self.LoadWolkDirTree()
+
+        self.GridDataInfo()
+
+
     def __set_properties(self):
         # begin wxGlade: _3DWarehouseFrame.__set_properties
         self.SetTitle("3D Warehouse")
         self.txtPath.SetBackgroundColour(wx.Colour(127, 255, 0))
         self.txtPath.Enable(False)
         self.button_Path_selection.SetMinSize((28, 26))
-        self.grid_1.CreateGrid(10, 0)
-        self.grid_1.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, 0, ""))
+        self.gridDataInfo.CreateGrid(0, 0)
+        self.gridDataInfo.SetMinSize((400, 100))
+        self.gridDataInfo.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, 0, ""))
         # end wxGlade
 
     def __do_layout(self):
@@ -69,7 +81,7 @@ class _3DWarehouseFrame(wx.Frame):
         sizer_4.Add(self.treeDir, 1, wx.ALL | wx.EXPAND, 0)
         sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
         sizer_2.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 4)
-        sizer_2.Add(self.grid_1, 0, wx.ALL | wx.EXPAND, 2)
+        sizer_2.Add(self.gridDataInfo, 0, wx.ALL | wx.EXPAND, 2)
         sizer_5.Add(self.button_calculate, 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
@@ -88,7 +100,6 @@ class _3DWarehouseFrame(wx.Frame):
         # end wxGlade
 
     def OnPlot(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
-        self.windowStlRender.renderthis()
         event.Skip()
 
     def OnClose(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
@@ -99,20 +110,64 @@ class _3DWarehouseFrame(wx.Frame):
         dlg = wx.DirDialog (None, "Choose input directory", "", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
-        self.txtPath.AppendText(dlg.GetPath())
-        wolkDirr =  WalkDirectory()
-        wolkDirr.wolkDirAppenTree(self.treeDir, dlg.GetPath())
+        path = dlg.GetPath()
+        self.configData.SetPath(path)
+        self.txtPath.AppendText(path)
+        self.LoadWolkDirTree()
+        self.configData.save()
         event.Skip()
 
+    def LoadWolkDirTree(self):
+        path = self.configData.GetPath();
+        if (path == ''):
+            return
+        wolkDirr =  WalkDirectory()
+        wolkDirr.wolkDirAppenTree(self.treeDir, path)
+
+
+    def GridDataInfo(self):
+        self.gridDataInfo.InsertRows(1)
+        self.gridDataInfo.InsertCols(1)
+        self.gridDataInfo.SetColSize(0, 400)
+        self.gridDataInfo.SetRowLabelValue(0, 'Size (mm) - X,Y,Z')
+        self.gridDataInfo.InsertRows(1)
+        self.gridDataInfo.SetRowLabelValue(1, 'Filament length')
+        self.gridDataInfo.InsertRows(1)
+        self.gridDataInfo.SetRowLabelValue(2, 'Layers')
+        self.gridDataInfo.InsertRows(1)
+        self.gridDataInfo.SetRowLabelValue(3, 'Estimate time')
+
+    def GridDataInfoUpdate(self, size = (0,0,0), fLength = 0, layersN = 0, printtime = 0):
+        # size[0].str() + ',' + size[1].str() + ',' + size[2].str()
+        strCell = "X:%.2f" % size[0] + " Y:%.2f" % size[1] + " Z:%.2f" % size[2]
+        self.gridDataInfo.SetCellValue(0,0, strCell)
+        self.gridDataInfo.SetCellValue(1,0, "%.2f" % fLength)
+        self.gridDataInfo.SetCellValue(1,0, "%.2f" % layersN)
+        #self.gridDataInfo.SetCellValue(1,0, "%.2f" % printtime)
+
     def onTreeChange(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
-        print("Event handler 'onTreeChange' not implemented!")
         item =  event.GetItem()
-        print(self.treeDir.GetItemText(item))
+        itemData = self.treeDir.GetItemData(item)
+        if (itemData == None):
+            return
+        filename, file_extension = os.path.splitext(itemData)
+        file_extension = file_extension.upper()
+        if (file_extension == '.STL'):
+            self.windowStlRender.renderthis(itemData)
+            size = self.windowStlRender.getObjectSize()
+            self.GridDataInfoUpdate(size)
+        if (file_extension == '.GCODE'):
+            # Get info GCode
+            gcode = GCode(open(itemData, "rU"))
+            size = (gcode.width, gcode.depth, gcode.height)
+            self.GridDataInfoUpdate(size, gcode.filament_length, gcode.layers_count, gcode.estimate_duration()[1])
+            print("read GVode")
+
         event.Skip()
-        
+
     def onTreeChanging(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
-        print("Event handler 'onTreeChanging' not implemented!")
         event.Skip()
+
 # end of class _3DWarehouseFrame
 
 class MyWhereHouseApp(wx.App):

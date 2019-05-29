@@ -16,16 +16,15 @@ class VTKPanel(wx.Panel):
         self.ren = vtk.vtkRenderer()
         self.filename=""
         self.isploted = False
+        self.xObject = 0
+        self.yObject = 0
+        self.zObject = 0
 
-    def renderthis(self):
+    def renderthis(self, filename):
         # open a window and create a renderer
         self.widget.GetRenderWindow().AddRenderer(self.ren)
-        # open file
-        openFileDialog = wx.FileDialog(self, "Open STL file", "", self.filename, "*.stl", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-
-        if openFileDialog.ShowModal() == wx.ID_CANCEL:
-            return
-        self.filename = openFileDialog.GetPath()
+        # file to open
+        self.filename = filename
         # render the data
         reader = vtk.vtkSTLReader()
         reader.SetFileName(self.filename)
@@ -63,4 +62,36 @@ class VTKPanel(wx.Panel):
         cam.Elevation(10)
         cam.Azimuth(70)
         self.isploted = True
+
+        # Calculate object sizer
+        minx = maxx = miny = maxy = minz = maxz = None
+        points = reader.GetOutput()
+        for pointId in range(points.GetNumberOfPoints()):
+            p = points.GetPoint(pointId)
+            # p contains (x, y, z)
+            if minx is None:
+                minx = p[0]
+                maxx = p[0]
+                miny = p[1]
+                maxy = p[1]
+                minz = p[2]
+                maxz = p[2]
+            else:
+                maxx = max(p[0], maxx)
+                minx = min(p[0], minx)
+                maxy = max(p[1], maxy)
+                miny = min(p[1], miny)
+                maxz = max(p[2], maxz)
+                minz = min(p[2], minz)
+
+        self.xObject = maxx - minx
+        self.yObject = maxy - miny
+        self.zObject = maxz - minz
+
+        # Enable user interface interactor
+        self.widget.Initialize()
         self.ren.Render()
+        self.widget.Start()
+
+    def getObjectSize(self):
+        return self.xObject, self.yObject, self.zObject
