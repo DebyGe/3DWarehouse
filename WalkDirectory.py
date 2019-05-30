@@ -8,7 +8,8 @@ class WalkDirectory(object):
             dirItem = treeObj.AppendItem(item, root)
             for filename in files:
                 fileItem = treeObj.AppendItem(dirItem, filename, -1, -1, os.path.join(root, filename) )
-                
+            treeObj.Expand(dirItem)
+
     def wolkDirAppenTree(self, treeObj: wx.TreeCtrl, path):
         treeObj.DeleteAllItems()
         treeRoot = treeObj.AddRoot("Path")

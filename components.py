@@ -8,7 +8,7 @@ class ConfigureData(object):
         self.filename = "./config.json"
         self.data = {jsonPATH: ''}
 
-    def load(self):
+    def Load(self):
         if (not os.path.isfile(self.filename)):
             return False
 
@@ -16,7 +16,7 @@ class ConfigureData(object):
             self.data = json.load(json_data_file)
         return True
 
-    def save(self):
+    def Save(self):
         with open(self.filename, 'w') as outfile:
             json.dump(self.data, outfile)
 

@@ -9,7 +9,6 @@ import wx.grid
 import os
 from WalkDirectory import WalkDirectory
 from components import ConfigureData
-from GCode import GCode
 
 # begin wxGlade: dependencies
 # end wxGlade
@@ -31,8 +30,6 @@ class _3DWarehouseFrame(wx.Frame):
         self.button_Path_selection = wx.Button(self.panel_1, wx.ID_ANY, "...")
         self.treeDir = wx.TreeCtrl(self.panel_1, wx.ID_ANY)
         self.gridDataInfo = wx.grid.Grid(self.panel_1, wx.ID_ANY, size=(1, 1))
-        self.button_calculate = wx.Button(self.panel_1, wx.ID_ANY, "Calculate")
-        self.button_test = wx.Button(self.panel_1, wx.ID_ANY, "TEST")
         self.button_close = wx.Button(self.panel_1, wx.ID_ANY, "Close")
 
         self.__set_properties()
@@ -41,13 +38,12 @@ class _3DWarehouseFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnPathSelection, self.button_Path_selection)
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onTreeChange, self.treeDir)
         self.Bind(wx.EVT_TREE_SEL_CHANGING, self.onTreeChanging, self.treeDir)
-        self.Bind(wx.EVT_BUTTON, self.OnPlot, self.button_test)
         self.Bind(wx.EVT_BUTTON, self.OnClose, self.button_close)
         # end wxGlade
 
         # Load and set configuration data
         self.configData = ConfigureData()
-        self.configData.load()
+        self.configData.Load()
         self.LoadWolkDirTree()
 
         self.GridDataInfo()
@@ -82,7 +78,6 @@ class _3DWarehouseFrame(wx.Frame):
         sizer_3.Add(sizer_4, 1, wx.EXPAND, 0)
         sizer_2.Add(sizer_3, 1, wx.ALL | wx.EXPAND, 4)
         sizer_2.Add(self.gridDataInfo, 0, wx.ALL | wx.EXPAND, 2)
-        sizer_5.Add(self.button_calculate, 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
@@ -90,7 +85,8 @@ class _3DWarehouseFrame(wx.Frame):
         sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add((0, 0), 0, 0, 0)
-        sizer_5.Add(self.button_test, 0, 0, 0)
+        sizer_5.Add((0, 0), 0, 0, 0)
+        sizer_5.Add((0, 0), 0, 0, 0)
         sizer_5.Add(self.button_close, 0, 0, 0)
         sizer_2.Add(sizer_5, 0, wx.EXPAND, 0)
         self.panel_1.SetSizer(sizer_2)
@@ -112,13 +108,13 @@ class _3DWarehouseFrame(wx.Frame):
             return
         path = dlg.GetPath()
         self.configData.SetPath(path)
-        self.txtPath.AppendText(path)
+        self.configData.Save()
         self.LoadWolkDirTree()
-        self.configData.save()
         event.Skip()
 
     def LoadWolkDirTree(self):
         path = self.configData.GetPath();
+        self.txtPath.AppendText(path)
         if (path == ''):
             return
         wolkDirr =  WalkDirectory()
@@ -130,20 +126,10 @@ class _3DWarehouseFrame(wx.Frame):
         self.gridDataInfo.InsertCols(1)
         self.gridDataInfo.SetColSize(0, 400)
         self.gridDataInfo.SetRowLabelValue(0, 'Size (mm) - X,Y,Z')
-        self.gridDataInfo.InsertRows(1)
-        self.gridDataInfo.SetRowLabelValue(1, 'Filament length')
-        self.gridDataInfo.InsertRows(1)
-        self.gridDataInfo.SetRowLabelValue(2, 'Layers')
-        self.gridDataInfo.InsertRows(1)
-        self.gridDataInfo.SetRowLabelValue(3, 'Estimate time')
 
     def GridDataInfoUpdate(self, size = (0,0,0), fLength = 0, layersN = 0, printtime = 0):
-        # size[0].str() + ',' + size[1].str() + ',' + size[2].str()
         strCell = "X:%.2f" % size[0] + " Y:%.2f" % size[1] + " Z:%.2f" % size[2]
         self.gridDataInfo.SetCellValue(0,0, strCell)
-        self.gridDataInfo.SetCellValue(1,0, "%.2f" % fLength)
-        self.gridDataInfo.SetCellValue(1,0, "%.2f" % layersN)
-        #self.gridDataInfo.SetCellValue(1,0, "%.2f" % printtime)
 
     def onTreeChange(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
         item =  event.GetItem()
@@ -156,13 +142,6 @@ class _3DWarehouseFrame(wx.Frame):
             self.windowStlRender.renderthis(itemData)
             size = self.windowStlRender.getObjectSize()
             self.GridDataInfoUpdate(size)
-        if (file_extension == '.GCODE'):
-            # Get info GCode
-            gcode = GCode(open(itemData, "rU"))
-            size = (gcode.width, gcode.depth, gcode.height)
-            self.GridDataInfoUpdate(size, gcode.filament_length, gcode.layers_count, gcode.estimate_duration()[1])
-            print("read GVode")
-
         event.Skip()
 
     def onTreeChanging(self, event):  # wxGlade: _3DWarehouseFrame.<event_handler>
